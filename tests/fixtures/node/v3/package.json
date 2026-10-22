@@ -1,0 +1,9 @@
+{
+  "name": "fixture-node-v3",
+  "version": "1.0.0",
+  "dependencies": {
+    "@scope/pkg": "^2.1.0",
+    "dual-pkg": "^1.0.0",
+    "mpl-pkg": "^0.9.0"
+  }
+}

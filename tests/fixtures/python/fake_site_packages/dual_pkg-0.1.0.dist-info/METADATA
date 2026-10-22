@@ -1,0 +1,5 @@
+Metadata-Version: 2.2
+Name: dual-pkg
+Version: 0.1.0
+Summary: PEP 639 License-Expression package.
+License-Expression: MIT OR Apache-2.0

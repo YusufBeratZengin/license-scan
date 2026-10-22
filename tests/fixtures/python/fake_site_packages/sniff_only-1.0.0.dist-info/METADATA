@@ -1,0 +1,4 @@
+Metadata-Version: 2.1
+Name: sniff-only
+Version: 1.0.0
+Summary: Package with missing license field but LICENSE file present.

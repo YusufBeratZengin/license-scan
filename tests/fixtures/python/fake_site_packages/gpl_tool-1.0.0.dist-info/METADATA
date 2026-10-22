@@ -1,0 +1,6 @@
+Metadata-Version: 2.1
+Name: gpl-tool
+Version: 1.0.0
+Summary: A CLI utility licensed under GPL-3.0.
+License: GPL-3.0-only
+Classifier: License :: OSI Approved :: GNU General Public License v3 (GPLv3)
