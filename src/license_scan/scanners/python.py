@@ -2,10 +2,8 @@
 
 from __future__ import annotations
 
-import glob
 import importlib.metadata as im
 from pathlib import Path
-from typing import Optional
 
 from license_scan.models import ComplianceStatus, Dependency
 from license_scan.scanners.base import BaseScanner, ScanOptions
@@ -27,7 +25,7 @@ LICENSE_CANDIDATE_NAMES = (
 )
 
 
-def _find_virtualenv_site_packages(root: Path) -> Optional[Path]:
+def _find_virtualenv_site_packages(root: Path) -> Path | None:
     """Auto-detect virtual environment site-packages folder under root."""
     # Check common virtualenv folders: .venv, venv, env
     for venv_name in [".venv", "venv", "env"]:
@@ -48,11 +46,11 @@ def _find_virtualenv_site_packages(root: Path) -> Optional[Path]:
     return None
 
 
-def _extract_license_from_classifiers(classifiers: list[str]) -> Optional[str]:
+def _extract_license_from_classifiers(classifiers: list[str]) -> str | None:
     """Extract license name from PEP 301 classifier strings."""
     for c in classifiers:
         lower = c.strip().lower()
-        if lower.startswith("classifier: license ::") or lower.startswith("license ::"):
+        if lower.startswith(("classifier: license ::", "license ::")):
             # Strip prefix
             parts = c.split("::")
             if len(parts) >= 3:
@@ -70,11 +68,11 @@ def _extract_license_from_classifiers(classifiers: list[str]) -> Optional[str]:
 
 def _extract_license_file_content(
     dist: im.Distribution,
-) -> tuple[list[str], Optional[str], Optional[str]]:
+) -> tuple[list[str], str | None, str | None]:
     """Inspect distribution files for license files and text."""
     found_files: list[str] = []
-    text_content: Optional[str] = None
-    sniffed: Optional[str] = None
+    text_content: str | None = None
+    sniffed: str | None = None
 
     # Check via dist.read_text
     for name in LICENSE_CANDIDATE_NAMES:
@@ -85,7 +83,7 @@ def _extract_license_file_content(
                 if text_content is None:
                     text_content = content
                     sniffed = sniff_license_text(content)
-        except Exception:
+        except Exception:  # noqa: BLE001, S110
             pass
 
     # Check files attribute if available
@@ -99,12 +97,12 @@ def _extract_license_file_content(
                         found_files.append(fname)
                     if text_content is None:
                         try:
-                            content = p.read_text(encoding="utf-8", errors="replace")
+                            content = p.read_text(encoding="utf-8")
                             text_content = content
                             sniffed = sniff_license_text(content)
-                        except Exception:
+                        except Exception:  # noqa: BLE001, S110
                             pass
-    except Exception:
+    except Exception:  # noqa: BLE001, S110
         pass
 
     return found_files, text_content, sniffed
@@ -129,7 +127,7 @@ class PythonScanner(BaseScanner):
         return False
 
     def scan(self, path: Path, options: ScanOptions) -> list[Dependency]:
-        site_packages_path: Optional[str] = options.site_packages
+        site_packages_path: str | None = options.site_packages
 
         if site_packages_path is None:
             if path.is_dir() and any(path.glob("*.dist-info")):
@@ -172,10 +170,10 @@ class PythonScanner(BaseScanner):
                 # 2. License field
                 if not raw_license or raw_license.strip().upper() == "UNKNOWN":
                     lic_field = metadata.get("License")
-                    if lic_field and lic_field.strip().upper() != "UNKNOWN":
-                        # If License field contains full text or very long paragraph, don't use as ID
-                        if len(lic_field.strip().splitlines()) <= 2 and len(lic_field) < 80:
-                            raw_license = lic_field.strip()
+                    if (lic_field and lic_field.strip().upper() != "UNKNOWN"
+                            # Full text or long paragraph is not used as an ID
+                            and len(lic_field.strip().splitlines()) <= 2 and len(lic_field) < 80):
+                        raw_license = lic_field.strip()
 
                 # 3. Classifiers
                 classifiers = metadata.get_all("Classifier") or []
@@ -210,7 +208,7 @@ class PythonScanner(BaseScanner):
                     homepage=homepage,
                 )
                 deps.append(dep)
-            except Exception:
+            except Exception:  # noqa: BLE001, S112
                 continue
 
         return sorted(deps, key=lambda d: d.name.lower())

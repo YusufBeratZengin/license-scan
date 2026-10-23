@@ -5,7 +5,6 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from license_scan.models import Dependency
 
@@ -15,7 +14,7 @@ class ScanOptions:
     """Options controlling scanner behavior."""
 
     include_dev: bool = True
-    site_packages: Optional[str] = None
+    site_packages: str | None = None
     collect_license_texts: bool = True
 
 

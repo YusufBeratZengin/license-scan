@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Sequence
 from pathlib import Path
-from typing import Optional, Sequence
 
 from license_scan import __version__
-from license_scan.formatters import format_csv, format_json, format_markdown, format_table
-from license_scan.models import ComplianceStatus, Dependency, ScanResult
+from license_scan.formatters import (
+    format_csv,
+    format_json,
+    format_markdown,
+    format_table,
+)
+from license_scan.models import Dependency, ScanResult
 from license_scan.notice import generate_notice
 from license_scan.policy import Policy
 from license_scan.scanners.base import ScanOptions
@@ -136,7 +141,7 @@ def run_scan(
     return result
 
 
-def main(argv: Optional[Sequence[str]] = None) -> int:
+def main(argv: Sequence[str] | None = None) -> int:
     """CLI execution entrypoint."""
     parser = create_parser()
     args = parser.parse_args(argv)
@@ -160,7 +165,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     except FileNotFoundError as err:
         sys.stderr.write(f"Error: {err}\n")
         return 2
-    except Exception as err:
+    except Exception as err:  # noqa: BLE001
         sys.stderr.write(f"Error parsing policy file: {err}\n")
         return 2
 
@@ -200,7 +205,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             out_path.write_text(formatted + "\n", encoding="utf-8")
             if not args.quiet:
                 print(f"Output written to {out_path}")
-        except Exception as err:
+        except Exception as err:  # noqa: BLE001
             sys.stderr.write(f"Error writing to output file '{args.output}': {err}\n")
             return 2
     elif not args.quiet:

@@ -4,8 +4,8 @@ from __future__ import annotations
 
 import fnmatch
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
-from typing import Optional, Sequence
 
 from license_scan.models import ComplianceStatus
 
@@ -170,7 +170,7 @@ def matches_any_pattern(license_id: str, patterns: Sequence[str]) -> bool:
     return any(matches_license_pattern(license_id, pat) for pat in patterns)
 
 
-def sniff_license_text(text: str) -> Optional[str]:
+def sniff_license_text(text: str) -> str | None:
     """Sniff license identifier from the body text of a LICENSE or NOTICE file."""
     if not text:
         return None
@@ -283,7 +283,7 @@ class SpdxNode:
 class SpdxLicenseNode(SpdxNode):
     """Leaf node representing a single SPDX license ID, optionally WITH exception."""
 
-    def __init__(self, license_id: str, exception: Optional[str] = None) -> None:
+    def __init__(self, license_id: str, exception: str | None = None) -> None:
         self.license_id = normalize_spdx_id(license_id)
         self.exception = exception.strip() if exception else None
 
@@ -495,7 +495,7 @@ class SpdxTokenizer:
             elif kind == "IDENT":
                 self.tokens.append(("IDENT", val))
 
-    def peek(self) -> Optional[tuple[str, str]]:
+    def peek(self) -> tuple[str, str] | None:
         if self.pos < len(self.tokens):
             return self.tokens[self.pos]
         return None
@@ -595,6 +595,6 @@ def parse_spdx_expression(expr_str: str) -> SpdxNode:
         tokenizer = SpdxTokenizer(expr_str)
         parser = SpdxParser(tokenizer)
         return parser.parse()
-    except Exception:
+    except Exception:  # noqa: BLE001
         # Fallback to normalized single license if syntax fails
         return SpdxLicenseNode(expr_str)

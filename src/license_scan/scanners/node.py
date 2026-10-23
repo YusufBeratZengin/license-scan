@@ -4,11 +4,15 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from license_scan.models import ComplianceStatus, Dependency
 from license_scan.scanners.base import BaseScanner, ScanOptions
-from license_scan.spdx import normalize_spdx_id, parse_spdx_expression, sniff_license_text
+from license_scan.spdx import (
+    normalize_spdx_id,
+    parse_spdx_expression,
+    sniff_license_text,
+)
 
 LICENSE_FILENAMES = (
     "license",
@@ -64,11 +68,11 @@ def _extract_license_from_pkg_json(pkg_data: dict[str, Any]) -> str:
     return "UNKNOWN"
 
 
-def _read_license_file(pkg_dir: Path) -> tuple[list[str], Optional[str], Optional[str]]:
+def _read_license_file(pkg_dir: Path) -> tuple[list[str], str | None, str | None]:
     """Scan directory for license files; return (found_files, text, sniffed_id)."""
     found_files: list[str] = []
-    text_content: Optional[str] = None
-    sniffed: Optional[str] = None
+    text_content: str | None = None
+    sniffed: str | None = None
 
     if not pkg_dir.is_dir():
         return found_files, text_content, sniffed
@@ -82,9 +86,9 @@ def _read_license_file(pkg_dir: Path) -> tuple[list[str], Optional[str], Optiona
                         content = entry.read_text(encoding="utf-8", errors="replace")
                         text_content = content
                         sniffed = sniff_license_text(content)
-                    except Exception:
+                    except Exception:  # noqa: BLE001, S110
                         pass
-    except Exception:
+    except Exception:  # noqa: BLE001, S110
         pass
 
     return found_files, text_content, sniffed
@@ -106,7 +110,7 @@ class NodeScanner(BaseScanner):
             return True
         try:
             return any((p / "package.json").is_file() for p in path.iterdir() if p.is_dir())
-        except Exception:
+        except Exception:  # noqa: BLE001
             return False
 
     def scan(self, path: Path, options: ScanOptions) -> list[Dependency]:
@@ -125,7 +129,7 @@ class NodeScanner(BaseScanner):
                 has_pkgs = any((p / "package.json").is_file() for p in target_dir.iterdir() if p.is_dir())
                 if has_pkgs:
                     self._scan_node_modules_dir(target_dir, options, deps_by_key)
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
         return sorted(deps_by_key.values(), key=lambda d: d.name.lower())
@@ -140,7 +144,7 @@ class NodeScanner(BaseScanner):
         try:
             with lockfile_path.open("r", encoding="utf-8") as f:
                 data = json.load(f)
-        except Exception:
+        except Exception:  # noqa: BLE001
             return
 
         packages = data.get("packages")
@@ -168,8 +172,8 @@ class NodeScanner(BaseScanner):
                 # Check on-disk node_modules directory for package.json or license files
                 pkg_disk_dir = base_dir / key
                 license_files: list[str] = []
-                license_text: Optional[str] = None
-                homepage: Optional[str] = None
+                license_text: str | None = None
+                homepage: str | None = None
 
                 if pkg_disk_dir.is_dir():
                     pkg_json = pkg_disk_dir / "package.json"
@@ -180,7 +184,7 @@ class NodeScanner(BaseScanner):
                                 if raw_license == "UNKNOWN":
                                     raw_license = _extract_license_from_pkg_json(pj_data)
                                 homepage = pj_data.get("homepage") or pj_data.get("repository", {}).get("url") if isinstance(pj_data.get("repository"), dict) else pj_data.get("repository")
-                        except Exception:
+                        except Exception:  # noqa: BLE001, S110
                             pass
 
                     lfiles, ltext, sniffed = _read_license_file(pkg_disk_dir)
@@ -192,7 +196,7 @@ class NodeScanner(BaseScanner):
 
                 try:
                     normalized = parse_spdx_expression(raw_license).to_string()
-                except Exception:
+                except Exception:  # noqa: BLE001
                     normalized = normalize_spdx_id(raw_license)
                 dep = Dependency(
                     name=pkg_name,
@@ -232,8 +236,8 @@ class NodeScanner(BaseScanner):
             pkg_disk_dir = base_dir / "node_modules" / name
             raw_license = "UNKNOWN"
             license_files: list[str] = []
-            license_text: Optional[str] = None
-            homepage: Optional[str] = None
+            license_text: str | None = None
+            homepage: str | None = None
 
             if pkg_disk_dir.is_dir():
                 pkg_json = pkg_disk_dir / "package.json"
@@ -243,7 +247,7 @@ class NodeScanner(BaseScanner):
                             pj_data = json.load(pf)
                             raw_license = _extract_license_from_pkg_json(pj_data)
                             homepage = pj_data.get("homepage")
-                    except Exception:
+                    except Exception:  # noqa: BLE001, S110
                         pass
                 lfiles, ltext, sniffed = _read_license_file(pkg_disk_dir)
                 license_files = lfiles
@@ -254,7 +258,7 @@ class NodeScanner(BaseScanner):
 
             try:
                 normalized = parse_spdx_expression(raw_license).to_string()
-            except Exception:
+            except Exception:  # noqa: BLE001
                 normalized = normalize_spdx_id(raw_license)
             deps_by_key[(name, version)] = Dependency(
                 name=name,
@@ -315,7 +319,7 @@ class NodeScanner(BaseScanner):
                     version = str(pj_data.get("version", "unknown"))
                     raw_license = _extract_license_from_pkg_json(pj_data)
                     homepage = pj_data.get("homepage") or (pj_data.get("repository", {}).get("url") if isinstance(pj_data.get("repository"), dict) else pj_data.get("repository"))
-            except Exception:
+            except Exception:  # noqa: BLE001, S110
                 pass
 
         lfiles, ltext, sniffed = _read_license_file(pkg_dir)
@@ -324,7 +328,7 @@ class NodeScanner(BaseScanner):
 
         try:
             normalized = parse_spdx_expression(raw_license).to_string()
-        except Exception:
+        except Exception:  # noqa: BLE001
             normalized = normalize_spdx_id(raw_license)
         dep = Dependency(
             name=pkg_name,
