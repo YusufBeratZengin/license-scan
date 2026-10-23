@@ -85,6 +85,95 @@ class TestNodeScanner(unittest.TestCase):
         self.assertIn("@scoped/sample", dep_names)
         self.assertEqual(dep_names["@scoped/sample"].normalized_license, "0BSD")
 
+    def test_extract_license_helpers(self) -> None:
+        from license_scan.scanners.node import _extract_license_from_pkg_json
+
+        self.assertEqual(_extract_license_from_pkg_json({"license": {"type": "MIT"}}), "MIT")
+        self.assertIn("MIT", _extract_license_from_pkg_json({"licenses": [{"type": "MIT"}, {"type": "BSD-3-Clause"}]}))
+        self.assertIn("ISC", _extract_license_from_pkg_json({"licenses": ["MIT", "ISC"]}))
+        self.assertEqual(_extract_license_from_pkg_json({}), "UNKNOWN")
+
+    def test_scan_lockfile_v1(self) -> None:
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            lock_path = Path(tmpdir) / "package-lock.json"
+            lock_path.write_text(
+                json.dumps({
+                    "name": "sample-v1",
+                    "lockfileVersion": 1,
+                    "dependencies": {
+                        "lib-prod": {"version": "1.0.0", "dev": False},
+                        "lib-dev": {
+                            "version": "2.0.0",
+                            "dev": True,
+                            "dependencies": {
+                                "lib-nested": {"version": "3.0.0", "dev": True}
+                            }
+                        }
+                    }
+                }),
+                encoding="utf-8",
+            )
+            # Prod only
+            deps_prod = self.scanner.scan(lock_path, ScanOptions(include_dev=False))
+            self.assertEqual(len(deps_prod), 1)
+            self.assertEqual(deps_prod[0].name, "lib-prod")
+
+            # Dev included
+            deps_all = self.scanner.scan(lock_path, ScanOptions(include_dev=True))
+            names = [d.name for d in deps_all]
+            self.assertIn("lib-prod", names)
+            self.assertIn("lib-dev", names)
+            self.assertIn("lib-nested", names)
+
+    def test_corrupted_lockfile(self) -> None:
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            corrupt = Path(tmpdir) / "package-lock.json"
+            corrupt.write_text("{broken json", encoding="utf-8")
+            deps = self.scanner.scan(corrupt, ScanOptions())
+            self.assertEqual(deps, [])
+
+    def test_scan_lockfile_with_on_disk_package(self) -> None:
+        import json
+        import tempfile
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir)
+            lock_path = root / "package-lock.json"
+            lock_path.write_text(
+                json.dumps({
+                    "name": "project",
+                    "lockfileVersion": 2,
+                    "packages": {
+                        "": {"name": "project"},
+                        "node_modules/on-disk-pkg": {
+                            "version": "1.2.0"
+                        }
+                    }
+                }),
+                encoding="utf-8",
+            )
+            pkg_dir = root / "node_modules" / "on-disk-pkg"
+            pkg_dir.mkdir(parents=True)
+            (pkg_dir / "package.json").write_text(
+                json.dumps({
+                    "name": "on-disk-pkg",
+                    "version": "1.2.0",
+                    "license": "BSD-3-Clause",
+                    "homepage": "https://example.com/on-disk"
+                }),
+                encoding="utf-8",
+            )
+            (pkg_dir / "LICENSE").write_text("Redistribution and use in source and binary forms... 3-clause", encoding="utf-8")
+
+            deps = self.scanner.scan(lock_path, ScanOptions(collect_license_texts=True))
+            self.assertEqual(len(deps), 1)
+            self.assertEqual(deps[0].name, "on-disk-pkg")
+            self.assertEqual(deps[0].normalized_license, "BSD-3-Clause")
+            self.assertEqual(deps[0].homepage, "https://example.com/on-disk")
+            self.assertIsNotNone(deps[0].license_text)
+
 
 if __name__ == "__main__":
     unittest.main()

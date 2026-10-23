@@ -80,6 +80,46 @@ class TestPolicy(unittest.TestCase):
             self.assertIn("allow", data)
             self.assertIn("deny", data)
 
+    def test_policy_load_non_existent(self) -> None:
+        with self.assertRaises(FileNotFoundError):
+            Policy.load("non_existent_policy_file_xyz.json")
+
+    def test_policy_string_exception(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            policy_file = Path(tmpdir) / "license-scan.json"
+            policy_file.write_text(
+                json.dumps({
+                    "allow": ["MIT"],
+                    "deny": ["GPL-3.0*"],
+                    "exceptions": {"my-tool": "Approved company utility"}
+                }),
+                encoding="utf-8",
+            )
+            policy = Policy.load(policy_file)
+            dep = Dependency(
+                name="my-tool",
+                version="1.0.0",
+                ecosystem="node",
+                raw_license="GPL-3.0",
+                normalized_license="GPL-3.0-only",
+            )
+            policy.evaluate_dependency(dep)
+            self.assertEqual(dep.status, ComplianceStatus.ALLOWED)
+            self.assertIn("Approved company utility", dep.reason)
+
+    def test_policy_auto_find_dot_file(self) -> None:
+        import os
+        with tempfile.TemporaryDirectory() as tmpdir:
+            old_cwd = os.getcwd()
+            try:
+                os.chdir(tmpdir)
+                dot_file = Path(tmpdir) / ".license-scan.json"
+                dot_file.write_text(json.dumps({"allow": ["MIT"]}), encoding="utf-8")
+                policy = Policy.load(None)
+                self.assertEqual(policy.allow, ["MIT"])
+            finally:
+                os.chdir(old_cwd)
+
 
 if __name__ == "__main__":
     unittest.main()

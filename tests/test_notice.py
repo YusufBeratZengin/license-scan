@@ -42,6 +42,11 @@ class TestNoticeGenerator(unittest.TestCase):
         self.assertIn("Component: urllib3", notice_out)
         self.assertIn("License declared as MIT", notice_out)
 
+    def test_generate_notice_empty(self) -> None:
+        result = ScanResult(dependencies=[])
+        out = generate_notice(result, project_name="EmptyApp")
+        self.assertIn("No third-party dependencies recorded.", out)
+
 
 if __name__ == "__main__":
     unittest.main()

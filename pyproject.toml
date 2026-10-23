@@ -50,3 +50,21 @@ Changelog = "https://github.com/YusufBeratZengin/license-scan/blob/main/CHANGELO
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.coverage.run]
+source = ["license_scan"]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+fail_under = 85

@@ -183,7 +183,14 @@ class NodeScanner(BaseScanner):
                                 pj_data = json.load(pf)
                                 if raw_license == "UNKNOWN":
                                     raw_license = _extract_license_from_pkg_json(pj_data)
-                                homepage = pj_data.get("homepage") or pj_data.get("repository", {}).get("url") if isinstance(pj_data.get("repository"), dict) else pj_data.get("repository")
+                                hp = pj_data.get("homepage")
+                                repo = pj_data.get("repository")
+                                if hp and isinstance(hp, str):
+                                    homepage = hp
+                                elif isinstance(repo, dict):
+                                    homepage = repo.get("url")
+                                elif isinstance(repo, str):
+                                    homepage = repo
                         except Exception:  # noqa: BLE001, S110
                             pass
 

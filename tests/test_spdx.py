@@ -145,6 +145,117 @@ class TestSpdxEvaluation(unittest.TestCase):
         res = ast.evaluate(self.allow, self.deny, self.review)
         self.assertEqual(res.status, ComplianceStatus.ALLOWED)
 
+    def test_or_right_branch_allowed(self) -> None:
+        ast = parse_spdx_expression("GPL-3.0-only OR MIT")
+        res = ast.evaluate(self.allow, self.deny, self.review)
+        self.assertEqual(res.status, ComplianceStatus.ALLOWED)
+        self.assertEqual(res.effective_license, "MIT")
+
+    def test_or_review_branch(self) -> None:
+        ast_left = parse_spdx_expression("MPL-2.0 OR GPL-3.0-only")
+        res_left = ast_left.evaluate(self.allow, self.deny, self.review)
+        self.assertEqual(res_left.status, ComplianceStatus.REVIEW)
+
+        ast_right = parse_spdx_expression("GPL-3.0-only OR MPL-2.0")
+        res_right = ast_right.evaluate(self.allow, self.deny, self.review)
+        self.assertEqual(res_right.status, ComplianceStatus.REVIEW)
+
+    def test_and_right_denied(self) -> None:
+        ast = parse_spdx_expression("Apache-2.0 AND GPL-3.0-only")
+        res = ast.evaluate(self.allow, self.deny, self.review)
+        self.assertEqual(res.status, ComplianceStatus.DENIED)
+
+    def test_and_review(self) -> None:
+        ast = parse_spdx_expression("MIT AND MPL-2.0")
+        res = ast.evaluate(self.allow, self.deny, self.review)
+        self.assertEqual(res.status, ComplianceStatus.REVIEW)
+
+    def test_and_unknown(self) -> None:
+        ast = parse_spdx_expression("MIT AND UNKNOWN")
+        res = ast.evaluate(self.allow, self.deny, self.review, allow_unknown=False)
+        self.assertEqual(res.status, ComplianceStatus.UNKNOWN)
+
+    def test_unknown_allow_unknown_flag(self) -> None:
+        ast = parse_spdx_expression("UNKNOWN")
+        res_allowed = ast.evaluate(self.allow, self.deny, self.review, allow_unknown=True)
+        self.assertEqual(res_allowed.status, ComplianceStatus.ALLOWED)
+
+        res_unknown = ast.evaluate(self.allow, self.deny, self.review, allow_unknown=False)
+        self.assertEqual(res_unknown.status, ComplianceStatus.UNKNOWN)
+
+    def test_unlisted_license_denied(self) -> None:
+        ast = parse_spdx_expression("NonExistentCustomLicense")
+        res = ast.evaluate(self.allow, self.deny, self.review)
+        self.assertEqual(res.status, ComplianceStatus.DENIED)
+
+    def test_sniff_more_licenses(self) -> None:
+        from license_scan.spdx import sniff_license_text
+
+        self.assertEqual(
+            sniff_license_text("GNU Lesser General Public License version 3"),
+            "LGPL-3.0-only",
+        )
+        self.assertEqual(
+            sniff_license_text("GNU Lesser General Public License version 2.1"),
+            "LGPL-2.1-only",
+        )
+        self.assertEqual(
+            sniff_license_text("GNU General Public License version 2"),
+            "GPL-2.0-only",
+        )
+        self.assertEqual(
+            sniff_license_text("Zero-Clause BSD (0BSD)"),
+            "0BSD",
+        )
+        self.assertEqual(
+            sniff_license_text("Permission to use, copy, modify, and/or distribute this software for any purpose"),
+            "ISC",
+        )
+        self.assertEqual(
+            sniff_license_text("Redistribution and use in source and binary forms... 2-clause simplified"),
+            "BSD-2-Clause",
+        )
+        self.assertEqual(
+            sniff_license_text("Mozilla Public License version 2.0"),
+            "MPL-2.0",
+        )
+        self.assertEqual(
+            sniff_license_text("Creative Commons Zero v1.0 Universal"),
+            "CC0-1.0",
+        )
+        self.assertEqual(
+            sniff_license_text("Python Software Foundation License Agreement"),
+            "PSF-2.0",
+        )
+        self.assertEqual(
+            sniff_license_text("This software is provided 'as-is'... zlib license"),
+            "Zlib",
+        )
+        self.assertIsNone(sniff_license_text("Random non-license text string"))
+
+    def test_empty_and_fallback_parsing(self) -> None:
+        ast_empty = parse_spdx_expression("")
+        self.assertEqual(ast_empty.to_string(), "UNKNOWN")
+
+        ast_spaces = parse_spdx_expression("   ")
+        self.assertEqual(ast_spaces.to_string(), "UNKNOWN")
+
+    def test_spdx_tokenizer_and_parser_edges(self) -> None:
+        from license_scan.spdx import SpdxParser, SpdxTokenizer
+
+        # Consume on exhausted tokenizer
+        tok = SpdxTokenizer("")
+        with self.assertRaises(ValueError):
+            tok.consume()
+
+        # Parse empty tokenizer
+        parser = SpdxParser(tok)
+        self.assertEqual(parser.parse().to_string(), "UNKNOWN")
+
+        # Fallback handling on unknown token or syntax error
+        fallback_node = parse_spdx_expression("%%% INVALID !!!")
+        self.assertIsNotNone(fallback_node)
+
 
 if __name__ == "__main__":
     unittest.main()

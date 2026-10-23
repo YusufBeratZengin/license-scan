@@ -176,6 +176,92 @@ class TestCLI(unittest.TestCase):
         code = main(["/path/that/does/not/exist/123456", "-q"])
         self.assertEqual(code, 2)
 
+    def test_init_policy_verbose(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            out_file = Path(tmpdir) / "test-policy-verbose.json"
+            import io
+            from unittest.mock import patch
+            buf = io.StringIO()
+            with patch("sys.stdout", buf):
+                code = main(["--init-policy", "-p", str(out_file)])
+            self.assertEqual(code, 0)
+            self.assertIn("Generated policy configuration", buf.getvalue())
+
+    def test_cli_missing_policy_file(self) -> None:
+        code = main([str(self.node_v3_lock), "-p", "/path/to/missing/policy.json", "-q"])
+        self.assertEqual(code, 2)
+
+    def test_cli_invalid_policy_json(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            broken_file = Path(tmpdir) / "broken.json"
+            broken_file.write_text("{not valid json", encoding="utf-8")
+            code = main([str(self.node_v3_lock), "-p", str(broken_file), "-q"])
+            self.assertEqual(code, 2)
+
+    def test_cli_table_stdout(self) -> None:
+        import io
+        from unittest.mock import patch
+        buf = io.StringIO()
+        with patch("sys.stdout", buf):
+            code = main([
+                str(self.node_v3_lock),
+                "-p",
+                str(self.policy_allow),
+                "-e",
+                "node",
+            ])
+        self.assertEqual(code, 0)
+        self.assertIn("Dependency License Inventory", buf.getvalue())
+
+    def test_cli_output_file_verbose(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            out_file = Path(tmpdir) / "report.txt"
+            import io
+            from unittest.mock import patch
+            buf = io.StringIO()
+            with patch("sys.stdout", buf):
+                code = main([
+                    str(self.node_v3_lock),
+                    "-p",
+                    str(self.policy_allow),
+                    "-e",
+                    "node",
+                    "-o",
+                    str(out_file),
+                ])
+            self.assertEqual(code, 0)
+            self.assertTrue(out_file.is_file())
+            self.assertIn("Output written to", buf.getvalue())
+
+    def test_cli_output_write_error(self) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            # Pointing output path to a directory itself causes write_text to fail
+            dir_as_file = Path(tmpdir) / "dir_target"
+            dir_as_file.mkdir()
+            code = main([
+                str(self.node_v3_lock),
+                "-p",
+                str(self.policy_allow),
+                "-e",
+                "node",
+                "-o",
+                str(dir_as_file),
+                "-q",
+            ])
+            self.assertEqual(code, 2)
+
+    def test_cli_module_execution(self) -> None:
+        import runpy
+        import sys
+        old_argv = sys.argv
+        try:
+            sys.argv = ["license-scan", "--version"]
+            with self.assertRaises(SystemExit) as cm:
+                runpy.run_module("license_scan", run_name="__main__")
+            self.assertEqual(cm.exception.code, 0)
+        finally:
+            sys.argv = old_argv
+
 
 if __name__ == "__main__":
     unittest.main()

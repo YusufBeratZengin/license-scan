@@ -71,6 +71,21 @@ class TestFormatters(unittest.TestCase):
         self.assertIn("| `ALLOWED` | node | `express` | 4.18.2 | `MIT`", out)
         self.assertIn("**Result:** `FAILED`", out)
 
+    def test_format_empty_results(self) -> None:
+        empty_res = ScanResult(dependencies=[])
+        empty_res.compute_summary()
+        table_out = format_table(empty_res)
+        self.assertIn("No dependencies found.", table_out)
+
+        md_out = format_markdown(empty_res)
+        self.assertIn("No dependencies detected.", md_out)
+
+    def test_ecosystem_str(self) -> None:
+        from license_scan.models import Ecosystem
+
+        self.assertEqual(str(Ecosystem.NODE), "node")
+        self.assertEqual(str(Ecosystem.PYTHON), "python")
+
 
 if __name__ == "__main__":
     unittest.main()
