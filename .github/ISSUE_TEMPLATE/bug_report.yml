@@ -1,0 +1,49 @@
+name: Bug Report
+description: Create a report to help us reproduce and fix a bug
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report an issue! Please provide as much detail as possible.
+  - type: textarea
+    id: description
+    attributes:
+      label: Bug Description
+      description: A clear and concise description of what the bug is.
+      placeholder: Describe what happened...
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to Reproduce
+      description: Provide the command executed and steps to reproduce the issue.
+      placeholder: |
+        1. Run 'license-scan ...'
+        2. Inspect output
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment Info
+      description: Operating System, Python version, license-scan version.
+      placeholder: "e.g., Windows 11 / Ubuntu 22.04, Python 3.11, license-scan 0.1.0"
+    validations:
+      required: false
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Add any relevant lockfiles, package manifests, or terminal logs.
+    validations:
+      required: false
