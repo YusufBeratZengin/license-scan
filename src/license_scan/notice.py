@@ -2,12 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Optional
-
 from license_scan.models import ScanResult
 
 
-def generate_notice(result: ScanResult, project_name: Optional[str] = None) -> str:
+def generate_notice(result: ScanResult, project_name: str | None = None) -> str:
     """Generate attribution notice file content for all scanned dependencies."""
     pname = project_name or "This software"
     sep = "=" * 80
@@ -15,7 +13,7 @@ def generate_notice(result: ScanResult, project_name: Optional[str] = None) -> s
 
     lines: list[str] = []
     lines.append(sep)
-    lines.append(f"THIRD-PARTY SOFTWARE LICENSES AND ATTRIBUTIONS")
+    lines.append("THIRD-PARTY SOFTWARE LICENSES AND ATTRIBUTIONS")
     lines.append(sep)
     lines.append("")
     lines.append(

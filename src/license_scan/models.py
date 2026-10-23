@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 
 class ComplianceStatus(str, Enum):
@@ -42,9 +42,9 @@ class Dependency:
     reason: str = ""
     is_dev: bool = False
     license_files: list[str] = field(default_factory=list)
-    license_text: Optional[str] = None
-    location: Optional[str] = None
-    homepage: Optional[str] = None
+    license_text: str | None = None
+    location: str | None = None
+    homepage: str | None = None
 
     def to_dict(self) -> dict[str, Any]:
         """Convert dependency to serializable dictionary."""
@@ -93,7 +93,7 @@ class ScanResult:
 
     dependencies: list[Dependency] = field(default_factory=list)
     summary: Summary = field(default_factory=Summary)
-    policy_path: Optional[str] = None
+    policy_path: str | None = None
     root_path: str = "."
 
     def compute_summary(self, strict: bool = False) -> None:
@@ -112,9 +112,7 @@ class ScanResult:
             1 for d in self.dependencies if d.status == ComplianceStatus.UNKNOWN
         )
 
-        if self.summary.denied > 0:
-            self.summary.passed = False
-        elif strict and (self.summary.review > 0 or self.summary.unknown > 0):
+        if self.summary.denied > 0 or strict and (self.summary.review > 0 or self.summary.unknown > 0):
             self.summary.passed = False
         else:
             self.summary.passed = True

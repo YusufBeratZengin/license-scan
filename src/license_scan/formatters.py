@@ -5,9 +5,8 @@ from __future__ import annotations
 import csv
 import io
 import json
-from typing import Sequence
 
-from license_scan.models import ComplianceStatus, Dependency, ScanResult
+from license_scan.models import ScanResult
 
 
 def format_table(result: ScanResult, verbose: bool = False) -> str:

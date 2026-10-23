@@ -3,7 +3,12 @@
 import json
 import unittest
 
-from license_scan.formatters import format_csv, format_json, format_markdown, format_table
+from license_scan.formatters import (
+    format_csv,
+    format_json,
+    format_markdown,
+    format_table,
+)
 from license_scan.models import ComplianceStatus, Dependency, ScanResult
 
 

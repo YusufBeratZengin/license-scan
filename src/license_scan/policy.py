@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any
 
 from license_scan.models import ComplianceStatus, Dependency
 from license_scan.spdx import matches_license_pattern, parse_spdx_expression
@@ -49,7 +49,7 @@ class PolicyException:
     """Exception rule for a specific dependency."""
 
     reason: str
-    license: Optional[str] = None
+    license: str | None = None
 
 
 @dataclass
@@ -61,12 +61,12 @@ class Policy:
     review: list[str] = field(default_factory=lambda: list(DEFAULT_REVIEW))
     allow_unknown: bool = False
     exceptions: dict[str, PolicyException] = field(default_factory=dict)
-    loaded_from: Optional[str] = None
+    loaded_from: str | None = None
 
     @classmethod
-    def load(cls, path: Optional[str | Path] = None) -> Policy:
+    def load(cls, path: str | Path | None = None) -> Policy:
         """Load policy from file, search default names, or return default."""
-        target_path: Optional[Path] = None
+        target_path: Path | None = None
 
         if path:
             candidate = Path(path)
