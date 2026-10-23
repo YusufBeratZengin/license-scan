@@ -1,88 +1,122 @@
 # license-scan
 
-Offline dependency license inventory and compliance scanner for Node.js and Python projects with allow/deny policies for CI.
+[![CI](https://github.com/YusufBeratZengin/license-scan/actions/workflows/ci.yml/badge.svg)](https://github.com/YusufBeratZengin/license-scan/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/license-scan.svg?color=blue)](https://pypi.org/project/license-scan/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Overview
+**[English](README.md)** | **[Türkçe](README.tr.md)**
 
-Software projects often incorporate hundreds of transitive third-party dependencies. Shipping proprietary closed-source applications with incompatible licenses (such as GPL/AGPL in binary distributions) or unvetted dependencies introduces legal and compliance liabilities.
+> Fast, zero-dependency offline dependency license inventory and compliance scanner for Node.js and Python projects.
 
-`license-scan` provides a fast, offline dependency license inventory scanner with zero runtime dependencies. It inspects Node.js (`package-lock.json` v2/v3 and `node_modules`) and Python installed packages (`importlib.metadata` distributions), normalizes licenses to canonical SPDX identifiers, evaluates SPDX boolean expressions (`AND`, `OR`, `WITH`), enforces compliance against customizable policy files (`license-scan.json`), and generates reports and third-party attribution notices (`NOTICE` / `THIRD_PARTY`).
+<p align="center">
+  <img src="docs/demo.svg" alt="license-scan terminal demo" width="880">
+</p>
 
-## Features
+## Why license-scan?
 
-- Zero runtime dependencies: uses only the Python standard library (`>=3.10`).
-- Multi-ecosystem detection:
-  - Node.js: parses `package-lock.json` (v2 and v3 format) and scans `node_modules` (`package.json`, legacy `licenses` arrays, and license file sniffing).
-  - Python: reads installed distributions via `importlib.metadata` (`License`, `License-Expression` per PEP 639, Trove classifiers, and license files) for the active environment or any specified `site-packages` directory.
-- SPDX normalization and expression parsing:
-  - Built-in canonical alias table (`Apache 2.0` -> `Apache-2.0`, `MIT License` -> `MIT`, etc.).
-  - Full boolean expression parsing supporting `AND`, `OR`, `WITH`, and nested parentheses.
-  - Accurate dual-licensing evaluation: an `OR` dual-license expression is compliant if at least one branch satisfies the policy.
-  - License text sniffer for identifying licenses when metadata is missing.
-- Policy enforcement (`license-scan.json`):
-  - `allow`, `deny`, and `review` lists with wildcard pattern matching (e.g. `GPL-*`).
-  - Per-package exceptions with explicit justification reason.
-  - Strict mode flag (`--strict`) to reject packages requiring manual review or unknown licenses.
-  - Exit code `1` on denied licenses for automated CI gates.
-- Multiple output formats:
-  - Formatted terminal table.
-  - Machine-readable JSON and CSV.
-  - GitHub-flavored Markdown.
-  - Attribution notice file generator (`NOTICE` / `THIRD_PARTY`).
+- **Zero Runtime Dependencies & 100% Offline:** Built entirely with the Python standard library (`>=3.10`). It performs zero network calls, sends no telemetry, and requires no API keys or third-party SaaS services.
+- **Multi-Ecosystem AST Expression Evaluation:** Unifies Node.js (`package-lock.json` v1/v2/v3, `node_modules`) and Python (`importlib.metadata`, PEP 639) under an AST-based SPDX parser handling boolean expressions (`AND`, `OR`, `WITH`, and nested parentheses) with dual-licensing logic.
+- **Automated CI Governance & Attribution:** Evaluates dependencies against customizable policy rules (`allow`, `deny`, `review`, and per-package `exceptions`), fails CI pipelines with exit code `1` on compliance violations, and generates ready-to-publish attribution files (`NOTICE` / `THIRD_PARTY`).
 
-## Installation
+---
 
-### From Source or Wheel
+## Quick Start
+
+### 1. Installation
+
+Install via pip:
 
 ```bash
-git clone https://github.com/YusufBeratZengin/license-scan.git
-cd license-scan
-pip install .
+pip install license-scan
 ```
 
-### Standalone / Editable Development
-
-Because `license-scan` has zero runtime dependencies, you can run it directly with any Python 3.10+ installation:
+Or run directly without installing (requires Python 3.10+):
 
 ```bash
 python -m license_scan --help
 ```
 
-## Quick Start
+### 2. Initialize Policy
 
-### 1. Initialize a Policy File
-
-Generate a starter `license-scan.json` in your repository:
+Generate a default `license-scan.json` policy file in your repository:
 
 ```bash
 license-scan --init-policy
 ```
 
-### 2. Scan the Current Project
+### 3. Scan Your Workspace
 
-Scan all detected Node and Python dependencies in the current workspace:
+Scan all detected Node.js and Python dependencies in the current directory:
 
 ```bash
 license-scan .
 ```
 
-### 3. Exclude Development Dependencies
+### 4. Production-Only Binary Check
 
-For production binary builds, exclude development-only packages:
+Exclude development dependencies (`devDependencies` in Node.js):
 
 ```bash
 license-scan . --prod
 ```
 
-### 4. Generate Attribution Notices
+### 5. Generate Attribution Notice
 
-Produce a third-party attribution notice file:
+Create a third-party attribution notice file:
 
 ```bash
 license-scan . --notice -o NOTICE
 ```
 
-## Command-Line Usage
+---
+
+## Usage Examples
+
+### Enforcing Strict CI Compliance
+
+In CI workflows, enable `--strict` mode to treat unreviewed (`REVIEW`) or unrecognized (`UNKNOWN`) licenses as failures (exit code `1`):
+
+```bash
+license-scan . --prod --strict
+```
+
+### Targeting a Specific Ecosystem
+
+Inspect only Node.js or Python packages:
+
+```bash
+# Node.js only
+license-scan ./package-lock.json -e node
+
+# Python only
+license-scan . -e python
+```
+
+### Inspecting an Isolated Virtual Environment
+
+Point directly to an arbitrary Python `site-packages` directory:
+
+```bash
+license-scan . --site-packages .venv/lib/python3.11/site-packages
+```
+
+### Exporting Machine-Readable Reports
+
+Generate JSON, CSV, or Markdown summaries for compliance audits:
+
+```bash
+# JSON export
+license-scan . -f json -o compliance-report.json
+
+# CSV export
+license-scan . -f csv -o licenses.csv
+
+# Markdown report for PR comments
+license-scan . -f markdown -o report.md
+```
+
+### CLI Reference
 
 ```text
 usage: license-scan [-h] [-p FILE] [-e {all,node,python}]
@@ -111,9 +145,11 @@ options:
   -q, --quiet           Suppress informational output.
 ```
 
-## Policy Configuration (`license-scan.json`)
+---
 
-The policy configuration controls allowed, denied, and review-flagged licenses.
+## Configuration (`license-scan.json`)
+
+`license-scan` looks for `license-scan.json` (or `.license-scan.json`) in the current directory, or a file specified via `-p / --policy`.
 
 ```json
 {
@@ -152,7 +188,7 @@ The policy configuration controls allowed, denied, and review-flagged licenses.
   "exceptions": {
     "internal-build-tool": {
       "license": "GPL-3.0-only",
-      "reason": "Internal developer utility; never bundled or distributed to customers."
+      "reason": "Internal developer utility; never bundled or distributed to end customers."
     }
   }
 }
@@ -160,18 +196,22 @@ The policy configuration controls allowed, denied, and review-flagged licenses.
 
 ### Policy Evaluation Logic
 
-1. **Exceptions First:** If the package name matches an entry in `exceptions` (case-insensitive) and the license matches (or no license restriction is specified in the exception), the package is marked `ALLOWED`.
-2. **SPDX Expression Resolution:**
-   - Single license: Checked against `deny` (wildcards supported), then `review`, then `allow`.
-   - `OR` (Dual licensing): If any branch is `ALLOWED`, the dependency is compliant. If all branches are denied, it is marked `DENIED`.
-   - `AND` (Combined licensing): All parts must be compliant. If any branch is `DENIED`, the dependency is `DENIED`.
-3. **Exit Code:** If any dependency resolves to `DENIED`, `license-scan` exits with code `1`. When `--strict` is enabled, dependencies in `REVIEW` or `UNKNOWN` state also trigger exit code `1`.
+1. **Exceptions First:** If a package matches an entry in `exceptions` (case-insensitive) and satisfies the license constraint, it is evaluated as `ALLOWED`.
+2. **Deny List Precedence:** Matches against the `deny` list (supports wildcards, e.g. `GPL-*`) take precedence and evaluate as `DENIED`.
+3. **Review Flagging:** Licenses listed in `review` evaluate as `REVIEW`.
+4. **Allow List:** Licenses explicitly defined in `allow` evaluate as `ALLOWED`.
+5. **SPDX Expression Resolution:**
+   - **`OR` (Dual Licensing):** Compliant if at least one choice is `ALLOWED`.
+   - **`AND` (Combined Licensing):** Requires all components to be compliant. If any branch is `DENIED`, the overall status is `DENIED`.
+6. **Exit Codes:** If any dependency is `DENIED` (or in `REVIEW`/`UNKNOWN` when `--strict` is enabled), `license-scan` exits with code `1`.
+
+---
 
 ## Continuous Integration (CI)
 
 ### GitHub Actions
 
-Add a license check step to your CI workflow:
+Add a license compliance check to `.github/workflows/ci.yml`:
 
 ```yaml
 name: License Compliance
@@ -209,32 +249,48 @@ license_scan:
     - python -m license_scan . --strict
 ```
 
-## Running Tests
+---
 
-Run the test suite using Python's built-in `unittest` runner:
+## FAQ & Limitations
 
-```bash
-python -m unittest discover -s tests -v
-```
+### Does license-scan transmit any project data over the network?
+No. `license-scan` operates 100% offline. It does not query remote package registries, external APIs, or analytics endpoints.
 
-## Project Architecture
+### Which lockfile formats and package managers are supported?
+- **Node.js:** `package-lock.json` (versions 1, 2, and 3) and direct `node_modules` inspection (including scoped `@org/package` structures and embedded `LICENSE` file sniffing).
+- **Python:** Installed environments via standard `importlib.metadata` distributions (`License`, PEP 639 `License-Expression`, Trove classifiers, and `.dist-info` license files).
 
-```text
-src/license_scan/
-├── __init__.py         # Package entry and version
-├── __main__.py         # python -m license_scan invocation
-├── cli.py              # CLI argument parser and command execution
-├── models.py           # Dependency, ScanResult, and ComplianceStatus models
-├── spdx.py             # Alias normalizer, text sniffer, and expression AST/parser
-├── policy.py           # Policy loader, exception matching, and rule evaluation
-├── formatters.py       # Table, JSON, CSV, and Markdown formatters
-├── notice.py           # Attribution notice generator
-└── scanners/
-    ├── __init__.py     # Scanner registry
-    ├── base.py         # BaseScanner interface and ScanOptions
-    ├── node.py         # Node.js package-lock and node_modules scanner
-    └── python.py       # Python importlib.metadata distribution scanner
-```
+### How does dual-licensing evaluation work?
+When a package declares dual-licensing using an `OR` expression (e.g., `(MIT OR GPL-3.0-only)`), `license-scan` treats the dependency as compliant as long as at least one of the options is allowed by your policy, reflecting typical open-source downstream licensing terms.
+
+### What are the limitations?
+- `license-scan` inspects local lockfiles and installed packages; it does not resolve uninstalled or unpinned requirement manifests (such as bare `requirements.txt` without an active environment).
+- `license-scan` is a developer governance utility, not a substitute for qualified legal counsel.
+
+---
+
+## Contributing
+
+Contributions, bug reports, and suggestions are welcome!
+
+1. Fork and clone the repository.
+2. Install test dependencies:
+   ```bash
+   pip install -e .[test]
+   ```
+3. Run tests with coverage:
+   ```bash
+   pytest --cov
+   ```
+4. Verify linting and typing:
+   ```bash
+   ruff check src tests
+   mypy src
+   ```
+
+Please see [CONTRIBUTING.md](CONTRIBUTING.md) for full guidelines.
+
+---
 
 ## License
 

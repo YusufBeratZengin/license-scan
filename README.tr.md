@@ -1,80 +1,67 @@
 # license-scan
 
-Node.js ve Python projeleri için harici bağımlılık lisans envanteri ve CI uyumluluk denetleyicisi.
+[![CI](https://github.com/YusufBeratZengin/license-scan/actions/workflows/ci.yml/badge.svg)](https://github.com/YusufBeratZengin/license-scan/actions/workflows/ci.yml)
+[![PyPI version](https://img.shields.io/pypi/v/license-scan.svg?color=blue)](https://pypi.org/project/license-scan/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-## Genel Bakış
+**[English](README.md)** | **[Türkçe](README.tr.md)**
 
-Yazılım projeleri çoğu zaman yüzlerce doğrudan veya dolaylı (transitive) üçüncü taraf bağımlılık barındırır. Kapalı kaynaklı veya tescilli ürünlerde uyumsuz lisansların (örneğin ikili dağıtımlarda GPL/AGPL) ya da lisansı belirsiz bileşenlerin fark edilmeden dağıtılması ciddi hukuki ve kurumsal riskler doğurur.
+> Node.js ve Python projeleri için sıfır bağımlılıklı, çevrimdışı bağımlılık lisans envanteri ve CI uyumluluk denetleyicisi.
 
-`license-scan`, üçüncü taraf SaaS araçlarına veya ücretli servislere ihtiyaç duymadan, sıfır harici çalışma zamanı bağımlılığı ile çevrimdışı (offline) lisans envanteri çıkarır. Node.js (`package-lock.json` v2/v3 ve `node_modules`) ile Python kurulu paketlerini (`importlib.metadata`) tarar; lisansları standart SPDX kimliklerine dönüştürür; SPDX mantıksal ifadelerini (`AND`, `OR`, `WITH`) ayrıştırır; tanımlanan politika kurallarına (`license-scan.json`) göre denetler ve terminal tablosu, JSON, CSV, Markdown ile `NOTICE` / `THIRD_PARTY` atıf dosyaları üretir.
+<p align="center">
+  <img src="docs/demo.svg" alt="license-scan terminal demosu" width="880">
+</p>
 
-## Özellikler
+## Neden license-scan?
 
-- Sıfır harici çalışma zamanı bağımlılığı: Yalnızca Python standart kütüphanesini (`>=3.10`) kullanır.
-- Çoklu ekosistem desteği:
-  - Node.js: `package-lock.json` (v2 ve v3 formatları) ile `node_modules` dizinini (`package.json`, eski `licenses` dizisi ve dosya içeriğinden lisans tespiti) inceler.
-  - Python: Etkin ortamdaki veya belirtilen herhangi bir `site-packages` dizinindeki kurulu paketleri `importlib.metadata` üzerinden (`License`, PEP 639 `License-Expression`, Trove sınıflandırıcıları ve lisans dosyaları) okur.
-- SPDX dönüştürme ve ifade ayrıştırıcı:
-  - Yerleşik alias tablosu (`Apache 2.0` -> `Apache-2.0`, `MIT License` -> `MIT` vb.).
-  - `AND`, `OR`, `WITH` ve parantez hiyerarşisini destekleyen mantıksal ifade ayrıştırıcısı.
-  - Çift lisanslama (`OR`) doğrulaması: Dallardan en az biri politikaya uygunsa bağımlılık kabul edilir.
-  - Üst veri bulunamadığında lisans metnini tarayan gömülü metin analizcisi.
-- Politika denetimi (`license-scan.json`):
-  - Joker karakter destekli (`GPL-*` gibi) `allow`, `deny` ve `review` listeleri.
-  - Gerekçeli paket istisnaları (`exceptions`).
-  - İnceleme gerektiren veya bilinmeyen lisansları doğrudan başarısız sayan `--strict` kipi.
-  - Yasaklı lisans bulunduğunda CI hatası için çıkış kodu `1`.
-- Farklı çıktı formatları:
-  - Terminal tablosu.
-  - JSON ve CSV formatları.
-  - GitHub uyumlu Markdown raporu.
-  - Lisans atıf dosyası üretici (`NOTICE` / `THIRD_PARTY`).
+- **Sıfır Çalışma Zamanı Bağımlılığı ve %100 Çevrimdışı:** Yalnızca Python standart kütüphanesini (`>=3.10`) kullanır. Sıfır ağ çağrısı yapar, telemetri göndermez; API anahtarı, jeton veya üçüncü taraf SaaS aboneliği gerektirmez.
+- **Çoklu Ekosistem ve AST Tabanlı SPDX İfade Çözümleyici:** Node.js (`package-lock.json` v1/v2/v3, `node_modules`) ve Python (`importlib.metadata`, PEP 639) ortamlarını tek çatı altında birleştirir. Mantıksal SPDX ifadelerini (`AND`, `OR`, `WITH` ve iç içe parantezler) AST düzeyinde ayrıştırarak çift lisanslama seçeneklerini doğru çözer.
+- **Otomatik CI Denetimi ve Lisans Atıf Üretimi:** Bağımlılıkları kural tabanlı politikalara (`allow`, `deny`, `review` ve gerekçeli paket `exceptions`) göre değerlendirir, uyumsuzluk tespitinde CI kapılarını çıkış kodu `1` ile durdurur ve yayınlamaya hazır atıf dosyaları (`NOTICE` / `THIRD_PARTY`) üretir.
 
-## Kurulum
+---
 
-### Kaynak Koddan veya Pip ile
+## Hızlı Başlangıç
+
+### 1. Kurulum
+
+Pip ile yükleyin:
 
 ```bash
-git clone https://github.com/YusufBeratZengin/license-scan.git
-cd license-scan
-pip install .
+pip install license-scan
 ```
 
-### Kurulum Yapmadan Doğrudan Çalıştırma
-
-Harici çalışma zamanı kütüphanesi gerekmediği için Python 3.10+ kurulu herhangi bir ortamda doğrudan çalıştırabilirsiniz:
+Veya doğrudan kurulum yapmadan çalıştırın (Python 3.10+ gereklidir):
 
 ```bash
 python -m license_scan --help
 ```
 
-## Hızlı Başlangıç
+### 2. Politika Dosyası Oluşturma
 
-### 1. Politika Dosyası Oluşturma
-
-Deponuzda başlangıç için varsayılan bir `license-scan.json` oluşturun:
+Deponuzda başlangıç için varsayılan bir `license-scan.json` şablonu oluşturun:
 
 ```bash
 license-scan --init-policy
 ```
 
-### 2. Projeyi Tarama
+### 3. Çalışma Alanını Tarama
 
-Geçerli dizindeki tüm Node ve Python bağımlılıklarını taramak için:
+Geçerli dizindeki tüm Node.js ve Python bağımlılıklarını taramak için:
 
 ```bash
 license-scan .
 ```
 
-### 3. Yalnızca Canlı (Production) Bağımlılıkları İnceleme
+### 4. Yalnızca Canlı Dağıtım Paketlerini İnceleme
 
-Geliştirme bağımlılıklarını dışarıda bırakmak için:
+Geliştirme bağımlılıklarını (`devDependencies`) dışarıda bırakmak için:
 
 ```bash
 license-scan . --prod
 ```
 
-### 4. Atıf (NOTICE) Dosyası Üretme
+### 5. Atıf (NOTICE) Dosyası Üretme
 
 Üçüncü taraf bileşenlerin lisans ve telif metinlerini içeren bir `NOTICE` dosyası oluşturmak için:
 
@@ -82,7 +69,54 @@ license-scan . --prod
 license-scan . --notice -o NOTICE
 ```
 
-## Komut Satırı Seçenekleri
+---
+
+## Kullanım Örnekleri
+
+### CI Ortamlarında Katı Denetim
+
+Sürekli entegrasyon süreçlerinde, inceleme gerektiren (`REVIEW`) veya tanımlanamayan (`UNKNOWN`) lisansların da süreci durdurması (çıkış kodu `1`) için `--strict` seçeneğini kullanın:
+
+```bash
+license-scan . --prod --strict
+```
+
+### Belirli Bir Ekosistemi Hedefleme
+
+Yalnızca Node.js veya Python paketlerini incelemek için:
+
+```bash
+# Yalnızca Node.js
+license-scan ./package-lock.json -e node
+
+# Yalnızca Python
+license-scan . -e python
+```
+
+### Harici veya İzole Bir Sanal Ortamı Tarama
+
+Doğrudan belirli bir `site-packages` dizinini belirtebilirsiniz:
+
+```bash
+license-scan . --site-packages .venv/lib/python3.11/site-packages
+```
+
+### Makine Tarafından Okunabilir Raporlar Üretme
+
+Denetimler için JSON, CSV veya Markdown formatında çıktılar alın:
+
+```bash
+# JSON raporu
+license-scan . -f json -o compliance-report.json
+
+# CSV çıktısı
+license-scan . -f csv -o licenses.csv
+
+# PR açıklamaları için Markdown raporu
+license-scan . -f markdown -o report.md
+```
+
+### Komut Satırı Seçenekleri
 
 ```text
 kullanım: license-scan [-h] [-p DOSYA] [-e {all,node,python}]
@@ -96,7 +130,7 @@ konumsal argümanlar:
 
 seçenekler:
   -h, --help            Yardım mesajını görüntüler ve çıkar.
-  -p, --policy DOSYA    Politika dosyası yolu (varsayılan: varsa license-scan.json, yoksa yerleşik kurallar).
+  -p, --policy DOSYA    Politika dosyası yolu (varsayılan: license-scan.json).
   -e, --ecosystem {all,node,python}
                         Taranacak ekosistem (varsayılan: all).
   -f, --format {table,json,csv,markdown,notice}
@@ -111,7 +145,11 @@ seçenekler:
   -q, --quiet           Bilgilendirme çıktılarını gizler.
 ```
 
+---
+
 ## Politika Yapılandırması (`license-scan.json`)
+
+`license-scan` aracı geçerli dizinde `license-scan.json` (veya `.license-scan.json`) dosyasını arar; istenirse `-p / --policy` ile özel bir dosya verilebilir.
 
 ```json
 {
@@ -150,7 +188,7 @@ seçenekler:
   "exceptions": {
     "dahili-derleme-araci": {
       "license": "GPL-3.0-only",
-      "reason": "Yalnızca yerel derleme adımında kullanılır; son kullanıcıya dağıtılmaz."
+      "reason": "Yalnızca şirket içi yerel derleme adımında kullanılır; son kullanıcıya dağıtılmaz."
     }
   }
 }
@@ -158,16 +196,22 @@ seçenekler:
 
 ### Politika Değerlendirme Kuralları
 
-1. **Önce İstisnalar:** Paket adı `exceptions` listesinde kayıtlıysa ve lisans eşleşiyorsa paket doğrudan `ALLOWED` olarak onaylanır.
-2. **SPDX İfadeleri:**
-   - Tek lisans: Sırasıyla `deny` (joker karakter destekli), `review` ve `allow` listelerine göre kontrol edilir.
-   - `OR` (Çift lisans): Seçeneklerden en az biri `ALLOWED` ise paket kabul edilir.
-   - `AND` (Bileşik lisans): Bileşenlerden herhangi biri `DENIED` ise paket reddedilir.
-3. **Çıkış Kodu:** Herhangi bir paket reddedilirse çıkış kodu `1` döner. `--strict` etkinse inceleme gerektiren veya tanımlanamayan lisanslar da çıkış kodunu `1` yapar.
+1. **Önce İstisnalar:** Paket adı `exceptions` listesinde kayıtlıysa ve lisans kısıtlamasını sağlıyorsa paket doğrudan `ALLOWED` olarak onaylanır.
+2. **Yasaklı Listesi Önceliği:** `deny` listesiyle eşleşen (joker karakter `GPL-*` desteklenir) lisanslar `DENIED` sayılır.
+3. **İnceleme Listesi:** `review` listesinde tanımlanan lisanslar `REVIEW` durumuna geçer.
+4. **İzin Verilenler:** `allow` listesinde bulunan lisanslar `ALLOWED` olarak onaylanır.
+5. **SPDX İfadeleri:**
+   - **`OR` (Çift Lisanslama):** Seçeneklerden en az biri `ALLOWED` ise paket kabul edilir.
+   - **`AND` (Bileşik Lisans):** Bileşenlerin tümünün uyumlu olması gerekir. Herhangi bir dal `DENIED` ise paket reddedilir.
+6. **Çıkış Kodları:** Herhangi bir paket reddedilirse (veya `--strict` etkin iken `REVIEW`/`UNKNOWN` varsa) çıkış kodu `1` döner.
+
+---
 
 ## Sürekli Entegrasyon (CI)
 
-### GitHub Actions Örneği
+### GitHub Actions
+
+`.github/workflows/ci.yml` dosyanıza lisans denetimi adımı ekleyin:
 
 ```yaml
 name: Lisans Denetimi
@@ -195,13 +239,58 @@ jobs:
           python -m license_scan . --prod --strict
 ```
 
-## Testleri Çalıştırma
+### GitLab CI
 
-Standart kütüphanedeki `unittest` modülü ile tüm testleri çalıştırabilirsiniz:
-
-```bash
-python -m unittest discover -s tests -v
+```yaml
+license_scan:
+  stage: test
+  image: python:3.11-slim
+  script:
+    - python -m license_scan . --strict
 ```
+
+---
+
+## SSS ve Kısıtlamalar
+
+### license-scan internet üzerinden proje veya paket verisi gönderir mi?
+Hayır. `license-scan` %100 çevrimdışı (offline) çalışır. Harici paket depolarına, uzak API'lere veya telemetri sunucularına hiçbir veri göndermez.
+
+### Hangi kilit dosyaları ve paket yöneticileri desteklenir?
+- **Node.js:** `package-lock.json` (sürüm 1, 2 ve 3) ile doğrudan `node_modules` dizini (kapsamlı `@org/paket` yapıları ve gömülü `LICENSE` dosya analizi dahil).
+- **Python:** Standart `importlib.metadata` ile kurulu paket ortamları (`License`, PEP 639 `License-Expression`, Trove sınıflandırıcıları ve `.dist-info` lisans dosyaları).
+
+### Çift lisanslama (`OR`) nasıl değerlendirilir?
+Bir paket `(MIT OR GPL-3.0-only)` gibi çift lisans belirttiğinde, açık kaynak dünyasındaki kullanıcı seçim hakkına paralel olarak politikanızda izin verilen en az bir seçenek varsa paket uyumlu kabul edilir.
+
+### Kısıtlamalar nelerdir?
+- `license-scan` yerel kilit dosyalarını ve kurulu paketleri inceler; kurulu olmayan veya kilit dosyası bulunmayan yalın `requirements.txt` gibi çözümlenmemiş bağımlılık dosyalarını çözemez.
+- `license-scan` bir geliştirici uyumluluk aracıdır; hukuki danışmanlık yerine geçmez.
+
+---
+
+## Katkıda Bulunma
+
+Hata bildirimleri, öneriler ve katkılar memnuniyetle karşılanır!
+
+1. Depoyu forklayın ve yerel ortamınıza klonlayın.
+2. Test bağımlılıklarını kurun:
+   ```bash
+   pip install -e .[test]
+   ```
+3. Testleri kapsam raporuyla çalıştırın:
+   ```bash
+   pytest --cov
+   ```
+4. Kod stilini ve tip denetimini doğrulayın:
+   ```bash
+   ruff check src tests
+   mypy src
+   ```
+
+Ayrıntılı yönergeler için lütfen [CONTRIBUTING.md](CONTRIBUTING.md) belgesine bakın.
+
+---
 
 ## Lisans
 
