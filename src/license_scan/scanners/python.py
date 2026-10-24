@@ -153,7 +153,7 @@ class PythonScanner(BaseScanner):
                 metadata = dist.metadata
                 if not metadata:
                     continue
-                name = metadata.get("Name")
+                name = metadata["Name"]
                 if not name:
                     continue
 
@@ -162,14 +162,16 @@ class PythonScanner(BaseScanner):
                     continue
                 seen.add(pkg_key)
 
-                version = metadata.get("Version", "unknown")
+                version = metadata["Version"]
+                if version is None:
+                    version = "unknown"
 
                 # 1. License-Expression (PEP 639)
-                raw_license = metadata.get("License-Expression")
+                raw_license = metadata["License-Expression"]
 
                 # 2. License field
                 if not raw_license or raw_license.strip().upper() == "UNKNOWN":
-                    lic_field = metadata.get("License")
+                    lic_field = metadata["License"]
                     if (lic_field and lic_field.strip().upper() != "UNKNOWN"
                             # Full text or long paragraph is not used as an ID
                             and len(lic_field.strip().splitlines()) <= 2 and len(lic_field) < 80):
@@ -186,7 +188,7 @@ class PythonScanner(BaseScanner):
                 normalized = normalize_spdx_id(final_raw)
 
                 # Extract Project-URL or Home-page
-                homepage = metadata.get("Home-page")
+                homepage = metadata["Home-page"]
                 if not homepage:
                     for proj_url in metadata.get_all("Project-URL") or []:
                         parts = proj_url.split(",", 1)
